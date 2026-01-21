@@ -7,7 +7,9 @@
 ## Dependencies: Blizzard_SharedXML
 
 MoonshineMarauders.xml
-MoonshineMarauders.lua
 UI.lua
 BossTracker.lua
 Telemetry.lua
+QuestTracker.lua
+TrackerGUI.lua
+MoonshineMarauders.lua

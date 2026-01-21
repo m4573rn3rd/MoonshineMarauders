@@ -2,7 +2,7 @@ local addonName, addonTable = ...
 local frame = CreateFrame("Frame")
 
 local function BPrint(msg)
-    print("|cFF00FF00[BrandonStats]|r: " .. msg)
+    
 end
 
 -- Event Handler for Telemetry

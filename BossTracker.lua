@@ -3,7 +3,7 @@ local frame = CreateFrame("Frame")
 local isTracking = false
 
 local function BPrint(msg)
-    print("|cFF00FF00[BrandonStats]|r: " .. msg)
+    
 end
 
 -- Helper: Broadcasts ranked results with the clean header
