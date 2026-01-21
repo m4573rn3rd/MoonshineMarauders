@@ -1,0 +1,10 @@
+## Interface: 120000
+## Title: Moonshine Marauders
+## Notes: A custom addon for the Moonshine Marauders guild.
+## Author: Gemini
+## Version: 1.0.0
+## SavedVariables: MoonshineMaraudersDB
+## Dependencies: Blizzard_SharedXML
+
+MoonshineMarauders.xml
+MoonshineMarauders.lua
