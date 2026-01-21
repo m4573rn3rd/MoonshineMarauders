@@ -1,13 +1,3 @@
--- Create a slash command to show/hide the main frame
-SLASH_MOONSHINEMARAUDERS1 = "/mm"
-SlashCmdList["MOONSHINEMARAUDERS"] = function(msg)
-    if MoonshineMaraudersFrame:IsShown() then
-        MoonshineMaraudersFrame:Hide()
-    else
-        MoonshineMaraudersFrame:Show()
-    end
-end
-
 -- Initialize the addon
 local f = CreateFrame("Frame")
 f:RegisterEvent("ADDON_LOADED")
@@ -20,3 +10,30 @@ f:SetScript("OnEvent", function(self, event, arg1)
         print("Moonshine Marauders addon loaded! Type /mm to show/hide the window.")
     end
 end)
+
+local addonName, addonTable = ...
+local frame = CreateFrame("Frame")
+
+-- Unified Event Handler for initializations that depend on addonTable
+frame:SetScript("OnEvent", function(self, event, ...)
+    if event == "ADDON_LOADED" and ... == addonName then
+        -- Initialize Damage Tracker
+        if addonTable.Tracker and addonTable.Tracker.Initialize then
+            addonTable.Tracker:Initialize()
+        end
+        
+        -- Initialize Guild Auditor
+        if addonTable.GuildTracker and addonTable.GuildTracker.Initialize then
+            addonTable.GuildTracker:Initialize()
+        end
+
+        -- Initialize Quest Log
+        if addonTable.QuestLog and addonTable.QuestLog.Initialize then
+            addonTable.QuestLog:Initialize()
+        end
+        
+        print("|cFF00FF00[MoonshineMarauders]|r: Systems Online: Boss Auto-Tracker, Guild Auditor, Market Monitor & Quest Log active.")
+    end
+end)
+
+frame:RegisterEvent("ADDON_LOADED")

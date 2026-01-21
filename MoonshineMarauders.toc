@@ -8,3 +8,6 @@
 
 MoonshineMarauders.xml
 MoonshineMarauders.lua
+UI.lua
+BossTracker.lua
+Telemetry.lua
