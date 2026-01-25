@@ -1,15 +1,11 @@
 ## Interface: 120000
 ## Title: Moonshine Marauders
 ## Notes: A custom addon for the Moonshine Marauders guild.
-## Author: Gemini
-## Version: 1.0.0
+## Author: Brandon L McClain
 ## SavedVariables: MoonshineMaraudersDB
-## Dependencies: Blizzard_SharedXML
 
-MoonshineMarauders.xml
-UI.lua
-BossTracker.lua
-Telemetry.lua
-QuestTracker.lua
-TrackerGUI.lua
-MoonshineMarauders.lua
+init.lua
+Core.xml
+quest_tracking/quests.lua
+stats_tracker/stats.lua
+Core.lua
