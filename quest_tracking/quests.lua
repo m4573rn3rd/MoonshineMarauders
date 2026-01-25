@@ -29,9 +29,13 @@ function QuestTracker:Register(eventFrame)
         local quests = MoonshineMaraudersDB.quests
         if not quests then
             addon:BPrint("Quest data not available yet.")
-            return
+            -- Even if quest data is not there, we might have loot data.
+        else
+            addon:BPrint(string.format("Quests completed today: %d", quests.daily))
+            addon:BPrint(string.format("Total quests completed: %d", quests.total))
         end
-        addon:BPrint(string.format("Quests completed today: %d", quests.daily))
-        addon:BPrint(string.format("Total quests completed: %d", quests.total))
+
+        local dailyLoot = MoonshineMarauders.LootTracker:GetDailyLoot()
+        addon:BPrint(string.format("Looted today: %s", GetCoinTextureString(dailyLoot)))
     end
 end

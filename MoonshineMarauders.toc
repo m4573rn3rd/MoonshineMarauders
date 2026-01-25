@@ -8,4 +8,5 @@ init.lua
 Core.xml
 quest_tracking/quests.lua
 stats_tracker/stats.lua
+loot_earn/loot.lua
 Core.lua

@@ -19,6 +19,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
     local arg1 = ...
     local StatsTracker = MoonshineMarauders.StatsTracker
     local QuestTracker = MoonshineMarauders.QuestTracker
+    local LootTracker = MoonshineMarauders.LootTracker
 
     if event == "ADDON_LOADED" and arg1 == "MoonshineMarauders" then
         if not MoonshineMaraudersDB then MoonshineMaraudersDB = {} end
@@ -26,6 +27,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
         
         StatsTracker:InitializeDB()
         QuestTracker:InitializeDB()
+        LootTracker:InitializeDB()
         
         addon:LogMessage("ADDON_LOADED event fired.")
         
@@ -36,9 +38,16 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
         addon:LogMessage("PLAYER_LOGIN event fired.")
         StatsTracker:Register(eventFrame)
         QuestTracker:Register(eventFrame)
+        LootTracker:Register(eventFrame)
 
     elseif event == "QUEST_TURNED_IN" then
         QuestTracker:HandleQuestTurnIn()
+
+    elseif event == "LOOT_OPENED" then
+        LootTracker:HandleLootOpened()
+
+    elseif event == "LOOT_CLOSED" then
+        LootTracker:HandleLootClosed()
 
     elseif event == "ENCOUNTER_START" then
         local _, encounterName = ...
@@ -63,6 +72,8 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
         end
 
     elseif event == "CHAT_MSG_LOOT" then
+        LootTracker:HandleLootedMoney(arg1)
+
         -- This part can stay in core for now, or be moved to a misc module later.
         local msg = arg1
         local itemLink = string.match(msg, "|Hitem:.-|h%[.-%]|h")
@@ -82,7 +93,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
             end
         end
 
-    elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
+    elseif event == "COMBAT_LOG_EVENT_UNfiltered" then
         if not StatsTracker.isTracking then return end
         local _, subevent, _, _, sourceName, sourceFlags = CombatLogGetCurrentEventInfo()
         local MASK_GROUP = COMBATLOG_OBJECT_AFFILIATION_MINE + COMBATLOG_OBJECT_AFFILIATION_PARTY + COMBATLOG_OBJECT_AFFILIATION_RAID
