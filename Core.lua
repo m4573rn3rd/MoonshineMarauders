@@ -17,28 +17,27 @@ end
 local eventFrame = CreateFrame("Frame")
 eventFrame:SetScript("OnEvent", function(self, event, ...)
     local arg1 = ...
-    local StatsTracker = MoonshineMarauders.StatsTracker
     local QuestTracker = MoonshineMarauders.QuestTracker
     local LootTracker = MoonshineMarauders.LootTracker
+    local BattleTracker = MoonshineMarauders.BattleTracker
 
     if event == "ADDON_LOADED" and arg1 == "MoonshineMarauders" then
         if not MoonshineMaraudersDB then MoonshineMaraudersDB = {} end
         if not MoonshineMaraudersDB.logs then MoonshineMaraudersDB.logs = {} end
         
-        StatsTracker:InitializeDB()
         QuestTracker:InitializeDB()
         LootTracker:InitializeDB()
+        BattleTracker:InitializeDB()
         
         addon:LogMessage("ADDON_LOADED event fired.")
         
-        StatsTracker:Initialize()
         addon:BPrint("Systems Online: Boss Auto-Tracker, Damage Meter & Telemetry active.")
 
     elseif event == "PLAYER_LOGIN" then
         addon:LogMessage("PLAYER_LOGIN event fired.")
-        StatsTracker:Register(eventFrame)
         QuestTracker:Register(eventFrame)
         LootTracker:Register(eventFrame)
+        BattleTracker:Register(eventFrame)
 
     elseif event == "QUEST_TURNED_IN" then
         QuestTracker:HandleQuestTurnIn()
@@ -51,16 +50,16 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
 
     elseif event == "ENCOUNTER_START" then
         local _, encounterName = ...
-        StatsTracker:StartTracking()
+        BattleTracker:StartTracking()
         addon:BPrint("Boss Engaged: |cFFFFFF00" .. encounterName .. "|r. Tracking started.")
 
     elseif event == "ENCOUNTER_END" then
         local _, encounterName, _, _, success = ...
         if success == 1 then
             addon:BPrint("Victory! Reporting stats...")
-            StatsTracker:AutoReport()
+            BattleTracker:AutoReport()
         end
-        StatsTracker:StopTracking()
+        BattleTracker:StopTracking()
 
     elseif event == "PLAYER_TARGET_CHANGED" then
         local targetName = UnitName("target")
@@ -71,7 +70,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
             end
         end
 
-    elseif event == "CHAT_MSG_LOOT" then
+    elseif event == "CHAT_MSG_LOOT" or event == "CHAT_MSG_MONEY" then
         LootTracker:HandleLootedMoney(arg1)
 
         -- This part can stay in core for now, or be moved to a misc module later.
@@ -93,15 +92,21 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
             end
         end
 
-    elseif event == "COMBAT_LOG_EVENT_UNfiltered" then
-        if not StatsTracker.isTracking then return end
-        local _, subevent, _, _, sourceName, sourceFlags = CombatLogGetCurrentEventInfo()
-        local MASK_GROUP = COMBATLOG_OBJECT_AFFILIATION_MINE + COMBATLOG_OBJECT_AFFILIATION_PARTY + COMBATLOG_OBJECT_AFFILIATION_RAID
-        if bit.band(sourceFlags, MASK_GROUP) ~= 0 then
-            if subevent == "SWING_DAMAGE" or subevent == "SPELL_DAMAGE" or subevent == "RANGE_DAMAGE" then
-                local destName = select(9, CombatLogGetCurrentEventInfo())
-                local amount = select(15, CombatLogGetCurrentEventInfo())
-                StatsTracker:LogGroupDamage(sourceName, destName, amount)
+    elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
+        if BattleTracker.isTracking then
+            local _, subevent, _, _, sourceName, sourceFlags, _, _, destName = CombatLogGetCurrentEventInfo()
+            local MASK_GROUP = COMBATLOG_OBJECT_AFFILIATION_MINE + COMBATLOG_OBJECT_AFFILIATION_PARTY + COMBATLOG_OBJECT_AFFILIATION_RAID
+            if bit.band(sourceFlags, MASK_GROUP) ~= 0 then
+                local amount
+                if subevent == "SWING_DAMAGE" then
+                    amount = select(12, CombatLogGetCurrentEventInfo())
+                elseif subevent == "SPELL_DAMAGE" or subevent == "RANGE_DAMAGE" then
+                    amount = select(15, CombatLogGetCurrentEventInfo())
+                end
+
+                if amount then
+                    BattleTracker:LogGroupDamage(sourceName, destName, amount)
+                end
             end
         end
     end
@@ -111,3 +116,7 @@ eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
 eventFrame:RegisterEvent("CHAT_MSG_LOOT")
+eventFrame:RegisterEvent("CHAT_MSG_MONEY")
+eventFrame:RegisterEvent("ENCOUNTER_START")
+eventFrame:RegisterEvent("ENCOUNTER_END")
+eventFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")

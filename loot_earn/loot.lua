@@ -20,7 +20,6 @@ end
 
 function LootTracker:HandleLootedMoney(message)
     -- Only parse for money if we are currently in a loot session.
-    if not self.isLooting then return end
 
     local lowerMessage = string.lower(message)
 
