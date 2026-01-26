@@ -20,6 +20,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
     local QuestTracker = MoonshineMarauders.QuestTracker
     local LootTracker = MoonshineMarauders.LootTracker
     local BattleTracker = MoonshineMarauders.BattleTracker
+    local FishingLog = MoonshineMarauders.FishingLog
 
     if event == "ADDON_LOADED" and arg1 == "MoonshineMarauders" then
         if not MoonshineMaraudersDB then MoonshineMaraudersDB = {} end
@@ -40,7 +41,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
         BattleTracker:Register(eventFrame)
 
     elseif event == "QUEST_TURNED_IN" then
-        QuestTracker:HandleQuestTurnIn()
+        QuestTracker:HandleQuestTurnIn(...)
 
     elseif event == "LOOT_OPENED" then
         LootTracker:HandleLootOpened()
@@ -50,7 +51,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
 
     elseif event == "ENCOUNTER_START" then
         local _, encounterName = ...
-        BattleTracker:StartTracking()
+        BattleTracker:StartTracking(...)
         addon:BPrint("Boss Engaged: |cFFFFFF00" .. encounterName .. "|r. Tracking started.")
 
     elseif event == "ENCOUNTER_END" then
@@ -59,7 +60,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
             addon:BPrint("Victory! Reporting stats...")
             BattleTracker:AutoReport()
         end
-        BattleTracker:StopTracking()
+        BattleTracker:StopTracking(...)
 
     elseif event == "PLAYER_TARGET_CHANGED" then
         local targetName = UnitName("target")
@@ -72,6 +73,7 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
 
     elseif event == "CHAT_MSG_LOOT" or event == "CHAT_MSG_MONEY" then
         LootTracker:HandleLootedMoney(arg1)
+        FishingLog:HandleLootMessage(arg1)
 
         -- This part can stay in core for now, or be moved to a misc module later.
         local msg = arg1
@@ -82,33 +84,9 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
                 addon:BPrint("Market Alert: " .. itemLink .. " is worth " .. GetCoinTextureString(price))
             end
         end
-        if msg:find("Fish") or msg:find("Fishing") then
-            local mapID = C_Map.GetBestMapForUnit("player")
-            if mapID then
-                local pos = C_Map.GetPlayerMapPosition(mapID, "player")
-                if pos then
-                    addon:BPrint(string.format("Fishing Spot Logged: %.2f, %.2f", pos.x*100, pos.y*100))
-                end
-            end
-        end
 
-    elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
-        if BattleTracker.isTracking then
-            local _, subevent, _, _, sourceName, sourceFlags, _, _, destName = CombatLogGetCurrentEventInfo()
-            local MASK_GROUP = COMBATLOG_OBJECT_AFFILIATION_MINE + COMBATLOG_OBJECT_AFFILIATION_PARTY + COMBATLOG_OBJECT_AFFILIATION_RAID
-            if bit.band(sourceFlags, MASK_GROUP) ~= 0 then
-                local amount
-                if subevent == "SWING_DAMAGE" then
-                    amount = select(12, CombatLogGetCurrentEventInfo())
-                elseif subevent == "SPELL_DAMAGE" or subevent == "RANGE_DAMAGE" then
-                    amount = select(15, CombatLogGetCurrentEventInfo())
-                end
-
-                if amount then
-                    BattleTracker:LogGroupDamage(sourceName, destName, amount)
-                end
-            end
-        end
+    elseif event == "COMBAT_LOG_EVENT" then
+        BattleTracker:HandleCombatLog()
     end
 end)
 
@@ -119,4 +97,4 @@ eventFrame:RegisterEvent("CHAT_MSG_LOOT")
 eventFrame:RegisterEvent("CHAT_MSG_MONEY")
 eventFrame:RegisterEvent("ENCOUNTER_START")
 eventFrame:RegisterEvent("ENCOUNTER_END")
-eventFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+eventFrame:RegisterEvent("COMBAT_LOG_EVENT")

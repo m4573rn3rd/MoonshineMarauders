@@ -8,7 +8,7 @@ function QuestTracker:InitializeDB()
     end
 end
 
-function QuestTracker:HandleQuestTurnIn()
+function QuestTracker:HandleQuestTurnIn(questID, xpReward, moneyReward)
     local today = date("%Y-%m-%d")
     if MoonshineMaraudersDB.quests.lastReset ~= today then
         MoonshineMaraudersDB.quests.daily = 0

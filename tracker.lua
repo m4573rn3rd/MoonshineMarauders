@@ -2,7 +2,6 @@ MoonshineMarauders.BattleTracker = {}
 local BattleTracker = MoonshineMarauders.BattleTracker
 local addon = MoonshineMarauders
 
-
 BattleTracker.startTime = 0
 BattleTracker.isTracking = false
 
@@ -12,9 +11,32 @@ function BattleTracker:InitializeDB()
     end
 end
 
-function BattleTracker:LogGroupDamage(playerName, targetName, amount)
+function BattleTracker:HandleCombatLog()
     if not self.isTracking then return end
 
+    local combatLogInfo = { CombatLogGetCurrentEventInfo() }
+    local subevent = combatLogInfo[2]
+    local sourceName = combatLogInfo[5]
+    local sourceFlags = combatLogInfo[6]
+    local destName = combatLogInfo[9]
+
+    local MASK_GROUP = COMBATLOG_OBJECT_AFFILIATION_MINE + COMBATLOG_OBJECT_AFFILIATION_PARTY + COMBATLOG_OBJECT_AFFILIATION_RAID
+    
+    if bit.band(sourceFlags, MASK_GROUP) ~= 0 then
+        local amount
+        if subevent == "SWING_DAMAGE" then
+            amount = combatLogInfo[12]
+        elseif subevent == "SPELL_DAMAGE" or subevent == "RANGE_DAMAGE" then
+            amount = combatLogInfo[15]
+        end
+
+        if amount then
+            self:LogGroupDamage(sourceName, destName, amount)
+        end
+    end
+end
+
+function BattleTracker:LogGroupDamage(playerName, targetName, amount)
     if not MoonshineMaraudersDB.battleStats.players[playerName] then
         MoonshineMaraudersDB.battleStats.players[playerName] = { totalDamage = 0, targets = {} }
     end
@@ -46,14 +68,14 @@ function BattleTracker:GetRankedStats()
     return sortedList, totalGroupDamage, duration
 end
 
-function BattleTracker:StartTracking(encounterID, encounterName)
+function BattleTracker:StartTracking()
     if self.isTracking then return end
     self.isTracking = true
     self.startTime = GetTime()
     self:ResetData()
 end
 
-function BattleTracker:StopTracking(encounterID, encounterName, difficultyID, groupSize, success)
+function BattleTracker:StopTracking()
     if not self.isTracking then return end
     self.isTracking = false
 end
@@ -68,25 +90,6 @@ function BattleTracker:ResetData()
     MoonshineMaraudersDB.battleStats = { players = {}, lastReset = date() }
 end
 
-local reportFrame = CreateFrame("Frame")
-reportFrame:SetScript("OnEvent", function(self, event)
-    if event == "PLAYER_REGEN_ENABLED" then
-        self:Hide()
-        local stats, totalDamage, duration, channel = unpack(self.pendingReport)
-        
-        SendChatMessage(string.format("--- Battle Report! Duration: %.1fs ---", duration), channel)
-    
-        for i = 1, math.min(5, #stats) do
-            local data = stats[i]
-            SendChatMessage(string.format("%d. %s: %d DPS", i, data.name, data.dps), channel)
-        end
-
-        self.pendingReport = nil
-    end
-end)
-reportFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
-reportFrame:Hide()
-
 function BattleTracker:AutoReport()
     local stats, totalDamage, duration = self:GetRankedStats()
     if #stats == 0 then return end
@@ -96,18 +99,14 @@ function BattleTracker:AutoReport()
     elseif IsInRaid() then channel = "RAID"
     elseif IsInGroup() then channel = "PARTY" end
 
-    reportFrame.pendingReport = { stats, totalDamage, duration, channel }
-    reportFrame:Show()
-end
-
-function BattleTracker:HandleCombatLog()
-    local timestamp, event, hideCaster, sourceGUID, sourceName, sourceFlags, sourceRaidFlags, destGUID, destName, destFlags, destRaidFlags, spellId, spellName, spellSchool, amount, overkill, school, resisted, blocked, absorbed, critical, glancing, crushing, isOffHand = CombatLogGetCurrentEventInfo()
-
-    if bit.band(sourceFlags, 1) == 1 then
-        if event == "SWING_DAMAGE" or event == "SPELL_DAMAGE" then
-            BattleTracker:LogGroupDamage(sourceName, destName, amount)
-        end
+    local report = { string.format("--- Battle Report! Duration: %.1fs ---", duration) }
+    
+    for i = 1, math.min(5, #stats) do
+        local data = stats[i]
+        table.insert(report, string.format("%d. %s: %d DPS", i, data.name, data.dps))
     end
+    
+    SendChatMessage(table.concat(report, "\n"), channel)
 end
 
 function BattleTracker:Register(eventFrame)

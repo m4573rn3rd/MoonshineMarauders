@@ -5,8 +5,10 @@
 ## SavedVariables: MoonshineMaraudersDB
 
 init.lua
-Core.xml
 quest_tracking/quests.lua
 loot_earn/loot.lua
+fishing.lua
 battle_tracker/battle_tracker.lua
+tracker.lua
+Core.xml
 Core.lua
